@@ -55,8 +55,8 @@ class MainHandler(Handler):
 
 class NewPostHandler(Handler):
     def render_front(self,  subject="", content="", error=""):
-	    arts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC")	   
-	    self.render("posts.html", title=title, art=art, error=error, arts=arts)
+	    posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC")	   
+	    self.render("posts.html", subject=subject, content=content, error=error, posts=posts)
 
     def get(self):
         self.render('bloginput.html')
@@ -73,7 +73,7 @@ class NewPostHandler(Handler):
 		    p = Post(subject=subject, content=content)
 		    p.put()
 	    else:
-		    error = 'Need to enter both title and art'
+		    error = 'Need to enter both subject and content'
 		    self.render_front(subject=subject, content=content, error=error)
 
 

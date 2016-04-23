@@ -59,22 +59,15 @@
   
    
   <body>
-    <h1>Yusuf's Blog</h1>
+    <h1>Yusuf's Blog Posts</h1>
 
-    <form method="post">
-	    <label>
-		    <div>Subject</div>
-		    <input type="text" name="subject" value="{{title}}">
-	    </label>
-	    <label>
-		    <div>Blog content</div>
-		    <textarea name="content" placeholder="Place your blog content here">{{content}}</textarea>
-	    </label>
-            <div class='error'>{{error}}</div>
-            <div>
-		    <input type='submit'></input>
-            </div>
-    </form>
+    {%for post in posts%}
+     <hr>
+     <div class='art'>
+       <div class='art-title'>{{post.subject}}</div>
+       <pre class='art-body'>{{post.content}}</pre>
+       </div>
+    {% endfor %}
 
   </body>
 
