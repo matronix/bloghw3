@@ -68,7 +68,7 @@
 	    </label>
 	    <label>
 		    <div>Blog content</div>
-		    <textarea name="content" placeholder="Place your ASCII art here">{{art}}</textarea>
+		    <textarea name="content" placeholder="Place your blog content here">{{content}}</textarea>
 	    </label>
             <div class='error'>{{error}}</div>
             <div>

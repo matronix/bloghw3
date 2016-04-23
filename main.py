@@ -42,21 +42,16 @@ class Handler(webapp2.RequestHandler):
 
 class MainHandler(Handler):
 
-##
-##    def get(self):
-##        self.render('front.html')
-##
-
-
     def get(self):
         self.redirect('/blog/newpost')
 
 
 
 class NewPostHandler(Handler):
+
     def render_front(self,  subject="", content="", error=""):
 	    posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC")	   
-	    self.render("posts.html", subject=subject, content=content, error=error, posts=posts)
+	    self.render("bloginput.html", subject=subject, content=content, error=error, posts=posts)
 
     def get(self):
         self.render('bloginput.html')
@@ -72,12 +67,36 @@ class NewPostHandler(Handler):
 	    if  subject and content:
 		    p = Post(subject=subject, content=content)
 		    p.put()
+		    p_id = str(p.key().id())
+		    self.redirect('/blog/%s' % p_id)
 	    else:
 		    error = 'Need to enter both subject and content'
 		    self.render_front(subject=subject, content=content, error=error)
 
+class PostHandler(Handler):
+    def render_front(self, post_id, post):
+	    #posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC")
+	    
+	    self.render("post.html", post_id=post_id, post=post)
 
+    def get(self, post_id):
+            p = Post.get_by_id(int(post_id))
+            self.render_front(post_id, p)
+
+
+class BlogHandler(Handler):
+        def render_front(self):
+	    posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC")
+	    self.render("posts.html", posts=posts)
+
+	def get(self):
+                self.render_front()
+        
+
+	    
 app = webapp2.WSGIApplication([
     ('/', MainHandler),
-    ('/blog/newpost', NewPostHandler)
+    ('/blog/newpost', NewPostHandler),
+    ('/blog/([0-9]+)', PostHandler),
+    ('/blog', BlogHandler)
 ], debug=True)

@@ -61,11 +61,11 @@
   <body>
     <h1>Yusuf's Blog Posts</h1>
 
-    {%for art in arts %}
+    {%for post in posts%}
      <hr>
      <div class='art'>
-       <div class='art-title'>{{art.title}}</div>
-       <pre class='art-body'>{{art.art}}</pre>
+       <div class='art-title'>{{post.subject}}</div>
+       <pre class='art-body'>{{post.content}}</pre>
        </div>
     {% endfor %}
 
