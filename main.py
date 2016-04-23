@@ -23,9 +23,9 @@ from google.appengine.ext import db
 template_dir = os.path.join(os.path.dirname(__file__), 'templates')
 jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), autoescape=True)
 
-class Art(db.Model):
-	title = db.StringProperty(required=True)
-	art = db.TextProperty(required=True)
+class Post(db.Model):
+	subject = db.StringProperty(required=True)
+	content = db.TextProperty(required=True)
 	created = db.DateTimeProperty(auto_now_add=True)
 
 
@@ -41,32 +41,40 @@ class Handler(webapp2.RequestHandler):
 		self.write(self.render_str(template, **kw))
 
 class MainHandler(Handler):
-    def render_front(self,  title="", art="", error=""):
 
-	    arts = db.GqlQuery("SELECT * FROM Art ORDER BY created DESC")
-	   
-	    self.render("front.html", title=title, art=art, error=error, arts=arts)
+##
+##    def get(self):
+##        self.render('front.html')
+##
+
 
     def get(self):
-        self.render('front.html')
+        self.redirect('/blog/newpost')
 
-    def post(self):
-	    title = self.request.get("title")
-	    art = self.request.get("art")
 
-	    if title and art:
-		    #self.write('thanks')
-		    a = Art(title=title, art=art)
-		    a.put()
-
-		    self.redirect("/")
-	    else:
-		    error = 'Need to enter both title and art'
-		    self.render_front(title=title, art=art, error=error)
 
 class NewPostHandler(Handler):
+    def render_front(self,  subject="", content="", error=""):
+	    arts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC")	   
+	    self.render("posts.html", title=title, art=art, error=error, arts=arts)
+
     def get(self):
         self.render('bloginput.html')
+
+#the browser has sent a post request.
+#This method will respond.
+    def post(self):
+            #"get" the "subject" from the request object received from the form which is
+            #posting the request
+	    subject = self.request.get("subject")
+	    content = self.request.get("content")
+
+	    if  subject and content:
+		    p = Post(subject=subject, content=content)
+		    p.put()
+	    else:
+		    error = 'Need to enter both title and art'
+		    self.render_front(subject=subject, content=content, error=error)
 
 
 app = webapp2.WSGIApplication([

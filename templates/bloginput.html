@@ -63,11 +63,11 @@
 
     <form method="post">
 	    <label>
-		    <div>Title</div>
+		    <div>Subject</div>
 		    <input type="text" name="subject" value="{{title}}">
 	    </label>
 	    <label>
-		    <div>art</div>
+		    <div>Blog content</div>
 		    <textarea name="content" placeholder="Place your ASCII art here">{{art}}</textarea>
 	    </label>
             <div class='error'>{{error}}</div>
@@ -75,13 +75,6 @@
 		    <input type='submit'></input>
             </div>
     </form>
-     <hr>
-    {%for art in arts %}
-     <div class='art'>
-       <div class='art-title'>{{art.title}}</div>
-       <pre class='art-body'>{{art.art}}</pre>
-       </div>
-    {% endfor %}
 
   </body>
 
