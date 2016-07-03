@@ -17,6 +17,7 @@
 import webapp2
 import os
 import jinja2
+import json
 
 from google.appengine.ext import db
 
@@ -43,6 +44,7 @@ class Handler(webapp2.RequestHandler):
 class MainHandler(Handler):
 
     def get(self):
+        
         self.redirect('/blog/newpost')
 
 
@@ -92,11 +94,34 @@ class BlogHandler(Handler):
 	def get(self):
                 self.render_front()
         
+class JSONAPIHandler(Handler):
+        #jList=[]
+        def post2json(self, post):
+            jsonPost = {}
+            jsonPost['content']=post.content
+            jsonPost['created']=post.created.ctime()
+            jsonPost['subject']=post.subject
+            return jsonPost
+            
+            
 
+            
+        def get(self):
+            jList=[]
+            posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC")
+            posts = list(posts)
+            for post in posts:
+                jsonObj = self.post2json(post)
+                jList.append(jsonObj)
+            self.write(json.dumps(jList))
+                
+            
+        
 	    
 app = webapp2.WSGIApplication([
     ('/', MainHandler),
     ('/blog/newpost', NewPostHandler),
     ('/blog/([0-9]+)', PostHandler),
-    ('/blog', BlogHandler)
+    ('/blog', BlogHandler),
+    ('/blog/.json', JSONAPIHandler)
 ], debug=True)
