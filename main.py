@@ -22,6 +22,9 @@ import re
 import random
 import string
 import hashlib
+import logging
+import time
+from google.appengine.api import memcache
 from google.appengine.ext import ndb
 from google.appengine.ext import db
 
@@ -105,6 +108,26 @@ def passwd_exists(pw):
             return True
     return False
 
+def getPost(postid, update=False):
+    postid = str(postid)
+    postGet = memcache.get(postid)
+    post_time = 0
+    
+    if postGet is None or update:
+        print "Post cache is cold......heating it."
+        #posts = Post.query().order(-Post.created)
+        post = Post.get_by_id(int(postid))
+        #posts = list(posts)
+        set_time = time.time()
+        memcache.set(postid, (post, set_time))
+    else:
+        print "Post cache is hot"
+        #posts = list(posts)
+        post = postGet[0]
+        post_time = time.time() - postGet[1]
+        
+    return (post, post_time)
+
 class User(db.Model):
 	username = db.StringProperty(required=True)
 	password = db.StringProperty(required=True)
@@ -115,7 +138,47 @@ class Post(ndb.Model):
 	subject = ndb.StringProperty(required=True)
 	content = ndb.TextProperty(required=True)
 	created = ndb.DateTimeProperty(auto_now_add=True)
-	postid = ndb.StringProperty()
+
+	elapsed_time = 0
+	
+
+	@classmethod
+	def getElapsedTime(cls):
+            return cls.elapsed_time
+
+        @classmethod
+	def getPostTime(cls):
+            return cls.post_time
+	
+        @classmethod
+        def getPosts(cls, update=False):
+            postsGet = memcache.get("POST")           
+            
+            if postsGet is None or update:
+                print "Cache is cold......heating it."
+                posts = Post.query().order(-Post.created)
+                posts = list(posts)
+                set_time = time.time()
+                memcache.set("POST", (posts, set_time))
+            else:
+                print "Cache is hot"
+                #posts = list(posts)
+                posts = list(postsGet[0])
+                cls.elapsed_time = time.time() - postsGet[1]
+                
+            return posts
+
+        
+        @classmethod
+        def flushPosts(cls):
+            memcache.flush_all()
+            cls.elapsed_time=0
+
+        @classmethod
+        def clearPosts(cls):
+            print "Cool the cache"
+            memcache.delete("POST")
+                
 	
 
 class Handler(webapp2.RequestHandler):
@@ -128,6 +191,8 @@ class Handler(webapp2.RequestHandler):
 
 	def render(self, template, **kw):
 		self.write(self.render_str(template, **kw))
+
+	
 
 class MainHandler(Handler):
 
@@ -195,15 +260,14 @@ class NewPostHandler(Handler):
 
 	    if  subject and content:
 		    p = Post(subject=subject, content=content)
-		    #p_id = str(p.key().id())
-		    #p.postid = p_id
+		    #accessing DB
+		    logging.error("Putting new post in DB")
 		    p_key = p.put()
+		    #since we've just updated the datastore with a new entry
+		    #we force a refresh of the cache.
+		    #Post.getPosts(update=True)
+                    Post.clearPosts()
 		    p_id = str(p_key.id())
-		    #retreive the post to store the p_id
-		    p=p_key.get()
-		    p.postid=p_id
-		    p.put()
-		    
 		    self.redirect('/blog/%s' % p_id)
 	    else:
 		    error = 'Need to enter both subject and content'
@@ -211,19 +275,23 @@ class NewPostHandler(Handler):
 
 class PostHandler(Handler):
     def render_front(self, post_id, post):
-	    #posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC")	    
-	    self.render("post.html", post_id=post_id, post=post)
+	    #posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC")
+            #post_time = Post.getPostTime()
+	    self.render("post.html", post_id=post_id, post=post[0], post_time=post[1])
 
     def get(self, post_id):
-            p = Post.get_by_id(int(post_id))
+            #p = Post.get_by_id(int(post_id))
+            p = getPost(post_id)
             self.render_front(post_id, p)
 
 
 class BlogHandler(Handler):
         def render_front(self):
 	    #posts = db.GqlQuery("SELECT * FROM Post ORDER BY created DESC")
-	    posts = Post.query().order(-Post.created)
-	    self.render("posts.html", posts=posts)
+	    #posts = Post.query().order(-Post.created)
+            posts = Post.getPosts()
+            elapsed_time = Post.getElapsedTime()
+	    self.render("posts.html", posts=posts, elapsed_time=elapsed_time)
 
 	def get(self):
                 self.render_front()
@@ -298,9 +366,7 @@ class LoginHandler(MainHandler):
             value = make_pw_hash(nameenterd, pwenterd)
             self.response.set_cookie('registercookie', value=value, path='/')
             q = db.GqlQuery("SELECT * FROM User WHERE username='%s'" % nameenterd)
-            #for e in q.run():
-                #u_id = e.id
-            #q = User.query(User.username == nameenterd)
+            
             for u in q.run():
                 u_id = u.key().id()
             self.redirect('/welcome/%s' % u_id)
@@ -314,6 +380,11 @@ class LogoutHandler(MainHandler):
 
     def post(self):
         self.redirect('/signup')
+
+class FlushHandler(MainHandler):
+    def get(self):
+        Post.flushPosts()
+        self.redirect('/blog')
 	    
 
 app = webapp2.WSGIApplication([
@@ -326,5 +397,6 @@ app = webapp2.WSGIApplication([
     ('/blog/([0-9]+).json', JSONAPIHandler),
     ('/.json', JSONAPIAllHandler),
     ('/login' , LoginHandler),
-    ('/logout', LogoutHandler)
+    ('/logout', LogoutHandler),
+    ('/flush', FlushHandler)
 ], debug=True)

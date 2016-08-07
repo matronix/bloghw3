@@ -65,10 +65,12 @@
      <hr>
      <div class='art'>
        <div class='art-title'>
-	   <a href='/blog/{{post.postid}}'>{{post.subject}}</a></div>
+	   <a href={{"/blog/%s" % post.key.id()}}>{{post.subject}}</a></div>
        <pre class='art-body'>{{post.content}}</pre>
        </div>
     {% endfor %}
+
+    <p>Queried {{elapsed_time}} seconds ago</p>
 
   </body>
 
